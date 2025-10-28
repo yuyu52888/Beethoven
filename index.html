@@ -201,8 +201,9 @@
             border: none;
             font-size: 1.5rem;
             cursor: pointer;
-            color: #e53e3e;
+            color: #718096;
             margin-left: 10px;
+            transition: color 0.3s;
         }
         
         .favorite-btn.active {
@@ -317,7 +318,7 @@
         <div id="quizScreen" class="screen">
             <div class="nav-controls">
                 <button class="btn btn-secondary" onclick="app.showScreen('mainMenu')">回首頁</button>
-                <button class="btn btn-danger" onclick="app.endQuiz()">提前結束</button>
+                <button class="btn btn-danger" onclick="app.endQuizEarly()">提前結束</button>
             </div>
             <div class="progress" id="progressText">1/10</div>
             <h1>測驗中</h1>
@@ -340,7 +341,7 @@
         <div id="studyScreen" class="screen">
             <div class="nav-controls">
                 <button class="btn btn-secondary" onclick="app.showScreen('mainMenu')">回首頁</button>
-                <button class="btn btn-danger" onclick="app.endStudy()">提前結束</button>
+                <button class="btn btn-danger" onclick="app.endStudyEarly()">提前結束</button>
             </div>
             <div class="progress" id="studyProgressText">1/10</div>
             <h1>背誦中</h1>
@@ -424,6 +425,15 @@
                 console.log('執行環境:', this.isLocal ? '本地模式' : '伺服器模式');
             },
 
+            // 載入收藏資料
+            loadFavorites: function() {
+                // 初始化收藏資料
+                if (!localStorage.getItem('vocabFavorites')) {
+                    localStorage.setItem('vocabFavorites', '[]');
+                }
+                console.log('收藏資料載入完成');
+            },
+
             // 載入單字資料庫
             loadVocabularyData: function() {
                 if (this.isLocal) {
@@ -447,6 +457,7 @@
                 ];
 
                 let loadedCount = 0;
+                const totalFiles = files.length;
                 
                 files.forEach(file => {
                     const script = document.createElement('script');
@@ -473,7 +484,7 @@
                                 break;
                         }
                         
-                        if (loadedCount === files.length) {
+                        if (loadedCount === totalFiles) {
                             console.log('所有單字資料載入完成', this.vocabularyData);
                             // 如果外部檔案載入失敗，使用內建資料
                             this.ensureVocabularyData();
@@ -482,7 +493,7 @@
                     script.onerror = () => {
                         console.warn(`無法載入 ${file.name} 資料，使用內建資料`);
                         loadedCount++;
-                        if (loadedCount === files.length) {
+                        if (loadedCount === totalFiles) {
                             this.loadBuiltInVocabulary();
                         }
                     };
@@ -502,19 +513,63 @@
                 // 這裡放置您的內建單字資料
                 this.vocabularyData = {
                     nouns: [
-                        // 您的名詞資料...
+                        {
+                            "id": "N001",
+                            "hiragana": "かぞく",
+                            "kanji": "家族",
+                            "meaning": "家人",
+                            "usage": "家族に紹介する",
+                            "particle_explanation": "に (動作對象)：介紹「給」家人"
+                        },
+                        {
+                            "id": "N002",
+                            "hiragana": "ともだち",
+                            "kanji": "友達",
+                            "meaning": "朋友",
+                            "usage": "友達と遊ぶ",
+                            "particle_explanation": "と (共同對象)：和朋友「一起」玩"
+                        }
+                        // 可以繼續添加更多範例單字...
                     ],
                     verbs: [
-                        // 動詞資料...
+                        {
+                            "id": "V001",
+                            "hiragana": "たべる",
+                            "kanji": "食べる",
+                            "meaning": "吃",
+                            "usage": "ご飯を食べる",
+                            "particle_explanation": "を (他動詞受格)：吃飯（動作直接對象）"
+                        }
                     ],
                     adjectives: [
-                        // 形容詞資料...
+                        {
+                            "id": "AJ001",
+                            "hiragana": "うつくしい",
+                            "kanji": "美しい",
+                            "meaning": "美麗的",
+                            "usage": "美しい景色",
+                            "particle_explanation": "(無助詞) い形容詞修飾名詞"
+                        }
                     ],
                     adverbs: [
-                        // 副詞資料...
+                        {
+                            "id": "AV001",
+                            "hiragana": "ゆっくり",
+                            "kanji": null,
+                            "meaning": "慢慢地",
+                            "usage": "ゆっくり話す",
+                            "particle_explanation": "(無助詞) 副詞直接修飾動詞"
+                        }
                     ],
                     grammar: [
-                        // 文法資料...
+                        {
+                            "id": "G001",
+                            "hiragana": "～てください",
+                            "kanji": null,
+                            "meaning": "請～",
+                            "usage": "座ってください",
+                            "particle_explanation": "て形 + ください (禮貌請求)"
+                        }
                     ]
                 };
                 console.log('使用內建單字資料');
@@ -815,16 +870,17 @@
             },
 
             // 提前結束測驗
-            endQuiz: function() {
+            endQuizEarly: function() {
                 if (confirm('確定要提前結束測驗嗎？')) {
-                    const percentage = Math.round((this.score / (this.currentQuestionIndex + 1)) * 100);
-                    alert(`測驗提前結束！\n得分: ${this.score}/${this.currentQuestionIndex + 1} (${percentage}%)`);
+                    const answeredQuestions = this.currentQuestionIndex + 1;
+                    const percentage = answeredQuestions > 0 ? Math.round((this.score / answeredQuestions) * 100) : 0;
+                    alert(`測驗提前結束！\n得分: ${this.score}/${answeredQuestions} (${percentage}%)`);
                     this.showScreen('mainMenu');
                 }
             },
 
             // 提前結束背誦
-            endStudy: function() {
+            endStudyEarly: function() {
                 if (confirm('確定要提前結束背誦嗎？')) {
                     this.showScreen('mainMenu');
                 }
